@@ -63,9 +63,18 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
+      # The minified files must be exactly what build.mjs produces. The .gz/.br variants depend on the platform's zlib
+      # and brotli builds, so they are checked by content: each must decompress to its committed file.
       - name: Rebuild the bundles (reproducible)
         run: |
+          node -e '
+            const fs = require("fs"), z = require("zlib");
+            for (const f of ["widget.min.js", "worker.min.js", "widget.min.css"]) {
+              const p = "challengejs/" + f, raw = fs.readFileSync(p);
+              if (!z.gunzipSync(fs.readFileSync(p + ".gz")).equals(raw)) throw new Error(p + ".gz does not match");
+              if (!z.brotliDecompressSync(fs.readFileSync(p + ".br")).equals(raw)) throw new Error(p + ".br does not match");
+            }'
           node challengejs/build.mjs
-          git diff --exit-code -- challengejs/
+          git diff --exit-code -- 'challengejs/*.min.js' 'challengejs/*.min.css'
       - name: Client tests
         run: go test -count=1 ./challengejs/
