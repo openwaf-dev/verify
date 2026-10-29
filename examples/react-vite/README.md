@@ -1,4 +1,4 @@
-# OpenWAF Verify · React + Vite example
+# OpenWAF Verify | React + Vite example
 
 A sign-up form with [`@openwaf/verify-react`](../../react) and a tiny backend route that checks the token with siteverify.
 
