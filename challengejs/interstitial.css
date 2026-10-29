@@ -1,0 +1,166 @@
+/* OpenWAF Verify interstitial (challenge_page.go), built by build.mjs into interstitial.min.css. The page inlines it
+   and sets --acc, the zone's challenge colour. */
+:root {
+  --bg: #fafafa;
+  --fg: #18181b;
+  --mut: #52525b;
+  --line: #d4d4d8;
+  --acc: #2456e8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #09090b;
+    --fg: #f4f4f5;
+    --mut: #a1a1aa;
+    --line: #3f3f46;
+  }
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+main {
+  max-width: 30rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+.s {
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+  border: 3px solid var(--line);
+  border-top-color: var(--acc);
+  border-radius: 50%;
+  margin: 0 auto 18px;
+  animation: r 0.8s linear infinite;
+}
+.f .s {
+  animation: none;
+  border-color: var(--line);
+}
+@keyframes r {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .s {
+    animation: none;
+    border-color: var(--acc);
+  }
+}
+h1 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+p {
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}
+small {
+  color: var(--mut);
+  font-size: 0.8125rem;
+}
+button {
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--fg);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+button:focus-visible,
+small a:focus-visible,
+.help a:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+button[hidden] {
+  display: none;
+}
+/* «Trouble? Check your browser» after a failed check (to the troubleshooting page). */
+.help {
+  font-size: 0.875rem;
+}
+.help a {
+  color: var(--fg);
+}
+
+/* The site's brand (site.challenge.brand): its logo as given, in every theme, or its name. */
+.b {
+  margin: 0 auto 24px;
+}
+.b img {
+  display: block;
+  width: auto;
+  height: 56px;
+  max-width: min(240px, 80vw);
+  margin: 0 auto;
+  object-fit: contain;
+}
+.b p {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+small a {
+  color: inherit;
+}
+small a:hover {
+  color: var(--fg);
+}
+/* The «|» between footer items: decorative (aria-hidden), muted, never part of a link. */
+.sep {
+  margin: 0 4px;
+  opacity: 0.7;
+}
+.by {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  vertical-align: bottom;
+}
+.by svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+.by .r {
+  fill-opacity: 0.72;
+}
+
+/* The verification box of under attack mode (html[data-state] = checking | ask | verifying | passed | failed, or error
+   when the proof of work itself fails): the widget's own box (widget.css, inlined after this file), shown once the
+   proof of work is done, centred, with the reason line under it; the spinner goes. */
+.owaf-v.ib,
+.why {
+  display: none;
+}
+:is([data-state='ask'], [data-state='verifying'], [data-state='passed'], [data-state='failed']) .owaf-v.ib {
+  display: flex;
+  margin: 0.25rem auto 1rem;
+}
+:is([data-state='ask'], [data-state='verifying'], [data-state='passed'], [data-state='failed']) .why {
+  display: block;
+  color: var(--mut);
+  font-size: 0.9375rem;
+}
+:is([data-state='ask'], [data-state='verifying'], [data-state='passed'], [data-state='failed']) .s {
+  display: none;
+}
+.id {
+  font-variant-numeric: tabular-nums;
+  user-select: all;
+}

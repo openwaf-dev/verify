@@ -1,0 +1,8 @@
+# Reviewed false positives of scripts/leak-guard.sh: path<TAB>ERE matched against the flagged line.
+# Made-up secrets in real format, used to prove the libraries never print the secret.
+php/tests/ClientTest.php	'ows_AnotherSecretThatMustNotShowUpAnywhere0+'
+php/tests/ClientTestCase.php	'ows_UnitTestSecretValueThatMustNeverLeak0+'
+siteverify/client_test.go	"ows_Zm9vYmFyYmF6cXV4cXV1eGNvcmdlZ3JhdWx0Z2FycGx5"
+# Fixture site key names of the widget's sandbox test.
+challengejs/testdata/widget.mjs	^owk_client_compact$
+challengejs/widget_test.go	^owk_client_compact$

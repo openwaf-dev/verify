@@ -1,0 +1,109 @@
+{{/*
+OpenWAF Verify interstitial page: the edge renders it (Go html/template) for a navigation that must pass a check
+before it reaches the site, then the page reloads with the pass cookie. Its style is interstitial.css (inlined as
+.CSS); with the verification box (.Interactive) it also inlines widget.css (.WidgetCSS) and the accent palette.
+
+Data: .Lang (en|es), .T (the language's texts: Title, Heading, HeadingHost, Start, Slow, Done, Failed, Retry,
+NoScript, Footer, FooterBy, ProtectedBy, Ask, Prompt, Why, Verifying, Success, BoxFailed, Interaction, Region,
+Privacy, Terms, NewTab, Help, PrivacyURL, TermsURL, OurURL), .Brand (nil = OpenWAF; else Client, Name, Logo, Icon,
+PrivacyURL, TermsURL), .CSS, .AccentCSS, .WidgetCSS, .PaletteCSS, .Host (the site while under attack, else ""),
+.Interactive, .PAT (offer a Private Access Token), .Challenge (the signed challenge), .Nonce, .Q, .D (puzzles and
+bits, see the protocol), .Worker (worker.js URL), .Script (the script's texts), .Help (troubleshooting URL or "")
+and .ID (support ID, interactive only).
+
+The inline script loads worker.js as a classic script (globalThis.owafPow), solves the challenge and posts
+{challenge, solutions[, interaction][, pt]} to /__waf/verify. A page without the box whose solve the risk escalates
+({ok:false, interactive:true, page}) writes page, the interstitial with the box, in its place. The empty ext-* blocks
+are the extension point of the page: a deployment may define them (vars, init, nav, activation, fields) to add to the
+script and the solve body.
+*/ -}}
+{{define "owaf-mark"}}<svg viewBox="80 80 352 352" aria-hidden="true" focusable="false"><path d="M221.67,99.82L243,87.51L243,179.51L103.58,260L103.58,168ZM103.58,286L243,205.51L243,293.51L129.56,359L103.58,344ZM152.08,372L243,319.51L243,424.49Z"/><path class="r" d="M269,87.51L299.38,105.04L408.42,168L408.42,260L269,179.51ZM269,205.51L408.42,286L408.42,344L382.44,359L269,293.51ZM269,319.51L359.92,372L269,424.49Z"/></svg>{{end}}{{define "sep"}}<span class="sep" aria-hidden="true">|</span>{{end}}
+{{- define "v-mark"}}<svg class="owaf-v-mark" viewBox="80 80 352 352" aria-hidden="true" focusable="false"><path class="owaf-v-mk-l" d="M221.67,99.82L243,87.51L243,179.51L103.58,260L103.58,168ZM103.58,286L243,205.51L243,293.51L129.56,359L103.58,344ZM152.08,372L243,319.51L243,424.49Z"/><path class="owaf-v-mk-r" d="M269,87.51L299.38,105.04L408.42,168L408.42,260L269,179.51ZM269,205.51L408.42,286L408.42,344L382.44,359L269,293.51ZM269,319.51L359.92,372L269,424.49Z"/></svg>{{end}}
+{{- define "v-sep"}}<span class="owaf-v-sep" aria-hidden="true">|</span>{{end}}
+{{- define "v-legal"}}<span class="owaf-v-legal"><a href="{{.T.PrivacyURL}}" target="_blank" rel="noopener" aria-label="{{.T.Privacy}}{{.T.NewTab}}">{{.T.Privacy}}</a>{{template "v-sep"}}<a href="{{.T.TermsURL}}" target="_blank" rel="noopener" aria-label="{{.T.Terms}}{{.T.NewTab}}">{{.T.Terms}}</a></span>{{end}}
+{{- define "v-brand"}}{{if not .Brand}}<div class="owaf-v-brand"><a class="owaf-v-logo" href="{{.T.OurURL}}" target="_blank" rel="noopener" aria-label="OpenWAF{{.T.NewTab}}">{{template "v-mark"}}</a>{{template "v-legal" .}}</div>
+{{- else}}<div class="owaf-v-brand owaf-v-brand-{{if .Brand.Client}}client{{else}}org{{end}}">
+{{- if .Brand.Icon}}<img class="owaf-v-brand-icon" src="{{.Brand.Icon}}" alt="{{.Brand.Name}}">
+{{- else if .Brand.Logo}}<img class="owaf-v-brand-logo" src="{{.Brand.Logo}}" alt="{{.Brand.Name}}">
+{{- else}}<span class="owaf-v-brand-name" title="{{.Brand.Name}}">{{.Brand.Name}}</span>{{end}}
+{{- if .Brand.Client}}<div class="owaf-v-prov"><a class="owaf-v-by" href="{{.T.OurURL}}" target="_blank" rel="noopener" aria-label="{{.T.ProtectedBy}}{{.T.NewTab}}">{{template "v-mark"}}<span class="owaf-v-by-text">{{.T.ProtectedBy}}</span></a>{{template "v-legal" .}}</div>
+{{- else if or .Brand.PrivacyURL .Brand.TermsURL}}<span class="owaf-v-legal">
+{{- with .Brand.PrivacyURL}}<a href="{{.}}" target="_blank" rel="noopener" aria-label="{{$.T.Privacy}}{{$.T.NewTab}}">{{$.T.Privacy}}</a>{{end}}
+{{- if and .Brand.PrivacyURL .Brand.TermsURL}}{{template "v-sep"}}{{end}}
+{{- with .Brand.TermsURL}}<a href="{{.}}" target="_blank" rel="noopener" aria-label="{{$.T.Terms}}{{$.T.NewTab}}">{{$.T.Terms}}</a>{{end}}</span>{{end}}</div>{{end}}{{end}}
+{{- define "box"}}<div id="owaf-box" class="owaf-v owaf-v-auto ib" role="group" aria-label="{{if and .Brand (not .Brand.Client)}}{{printf .T.FooterBy .Brand.Name}}{{else}}{{.T.Region}}{{end}}" data-state="interactive">
+<svg class="owaf-v-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle class="owaf-v-track" cx="12" cy="12" r="9"/><circle class="owaf-v-arc" cx="12" cy="12" r="9" pathLength="100"/><circle class="owaf-v-disc owaf-v-ok-disc" cx="12" cy="12" r="11"/><path class="owaf-v-glyph owaf-v-check" d="M7 12.5l3.2 3.2L17 8.8" pathLength="1"/><circle class="owaf-v-disc owaf-v-err-disc" cx="12" cy="12" r="11"/><path class="owaf-v-glyph owaf-v-cross" d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg>
+<label class="owaf-v-ask"><input id="owaf-cb" class="owaf-v-cb" type="checkbox"><span class="owaf-v-ask-text">{{.T.Ask}}</span></label>
+<div class="owaf-v-main"><span id="owaf-bs" class="owaf-v-status" role="status" aria-live="polite"></span><button id="owaf-again" class="owaf-v-btn" type="button" hidden><svg class="owaf-v-retry" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M12.5 1.8v2.9H9.6"/></svg><span>{{.T.Retry}}</span></button></div>
+{{template "v-brand" .}}
+</div>
+<p class="why">{{printf .T.Why .Host}}</p>
+{{end}}<!DOCTYPE html>
+<html lang="{{.Lang}}"{{if .Interactive}} data-state="checking"{{end}}><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="light dark">
+<title>{{if .Host}}{{printf .T.HeadingHost .Host}}{{else}}{{.T.Title}}{{end}}</title>
+<style>{{.CSS}}:root{--acc:{{.AccentCSS}}}{{if .Interactive}}{{.WidgetCSS}}{{.PaletteCSS}}{{end}}</style>
+<noscript><style>.s{display:none}</style></noscript>
+</head><body><main>
+{{- with .Brand}}
+<div class="b">{{if .Logo}}<img src="{{.Logo}}" alt="{{.Name}}">{{else}}<p>{{.Name}}</p>{{end}}</div>
+{{- end}}
+<div class="s" aria-hidden="true"></div>
+<h1>{{if .Host}}{{printf .T.HeadingHost .Host}}{{else}}{{.T.Heading}}{{end}}</h1>
+<p id="owaf-status" role="status" aria-live="polite"></p>
+{{if .Interactive}}{{template "box" .}}{{end}}<noscript><p>{{.T.NoScript}}</p></noscript>
+<p><button id="owaf-retry" type="button" hidden>{{.T.Retry}}</button></p>
+{{with .Help}}<p id="owaf-help" class="help" hidden><a href="{{.}}" target="_blank" rel="noopener" aria-label="{{$.T.Help}}{{$.T.NewTab}}">{{$.T.Help}}</a></p>{{end}}
+{{if .Interactive}}<small>{{if and .Brand (not .Brand.Client)}}{{printf .T.FooterBy .Brand.Name}}{{else}}<a class="by" href="{{.T.OurURL}}" target="_blank" rel="noopener" aria-label="{{.T.ProtectedBy}}{{.T.NewTab}}">{{template "owaf-mark"}}{{.T.ProtectedBy}}</a>{{end}}{{template "sep"}}<span class="id">ID: {{.ID}}</span></small>
+{{- else if not .Brand}}<small>{{.T.Footer}}</small>
+{{- else if .Brand.Client}}<small><a class="by" href="{{.T.OurURL}}" target="_blank" rel="noopener" aria-label="{{.T.ProtectedBy}}{{.T.NewTab}}">{{template "owaf-mark"}}{{.T.ProtectedBy}}</a>{{template "sep"}}<a href="{{.T.PrivacyURL}}" target="_blank" rel="noopener">{{.T.Privacy}}</a>{{template "sep"}}<a href="{{.T.TermsURL}}" target="_blank" rel="noopener">{{.T.Terms}}</a></small>
+{{- else}}<small>{{printf .T.FooterBy .Brand.Name}}{{with .Brand.PrivacyURL}}{{template "sep"}}<a href="{{.}}" target="_blank" rel="noopener">{{$.T.Privacy}}</a>{{end}}{{with .Brand.TermsURL}}{{template "sep"}}<a href="{{.}}" target="_blank" rel="noopener">{{$.T.Terms}}</a>{{end}}</small>
+{{- end}}
+</main>
+<script src="{{.Worker}}"></script>
+<script>
+(function(){
+var C={{.Challenge}},N={{.Nonce}},Q={{.Q}},D={{.D}},W={{.Worker}},T={{.Script}}{{block "ext-vars" .}}{{end}};
+var s=document.getElementById("owaf-status"),b=document.getElementById("owaf-retry"),hp=document.getElementById("owaf-help"),done=false;
+{{if .Interactive}}var box=document.getElementById("owaf-box"),cb=document.getElementById("owaf-cb"),bs=document.getElementById("owaf-bs"),again=document.getElementById("owaf-again"),hd=document.querySelector("h1"),asked=false;
+function st(x){document.documentElement.setAttribute("data-state",x)}
+function bx(x,t){box.setAttribute("data-state",x);bs.textContent=t}
+// activation is the one place that decides whether an event on the box is a person ticking it (as the widget's):
+// only trusted events; a click after a mouse, touch or pen pointerdown is "pointer", after Space or Enter "keyboard",
+// and an Enter keydown is "keyboard" by itself; anything else (a script's click, checked = true) is "".
+function activation(e,seen){if(!e.isTrusted)return"";if(e.type==="pointerdown"){seen.pointer=e.pointerType||"";return""}
+if(e.type==="keydown"){if(e.key!==" "&&e.key!=="Enter")return"";seen.key=true;return e.key==="Enter"?"keyboard":""}
+if(e.type==="click"){var p=e.pointerType||seen.pointer;if(p==="mouse"||p==="touch"||p==="pen")return"pointer";return seen.key?"keyboard":""}return""}
+{{end}}function say(t){s.textContent=t}
+{{if .PAT}}// Private Access Token: a supporting device answers the 401 PrivateToken challenge by itself; the proof joins the
+// solve if it arrived (waiting at most 2 s after the work). Without support the 401 is the answer and nothing changes.
+var pt,pp=fetch("/__waf/challenge/v1/pat?c="+encodeURIComponent(C),{credentials:"omit",cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){if(j&&j.pt)pt=j.pt},function(){});
+{{end}}
+var slow=setTimeout(function(){if(!done)say(T.slow)},5000);
+function fail({{if .Interactive}}code{{end}}){done=true;clearTimeout(slow);if(hp)hp.hidden=false;{{if .Interactive}}if(asked){st("failed");bx("error",code==="interaction-required"?T.interaction:T.boxFailed);again.hidden=false;again.focus();return}st("error");{{end}}document.documentElement.className="f";say(T.failed);b.hidden=false;b.focus()}
+b.onclick=function(){location.reload()};
+{{if .Interactive}}again.onclick=function(){location.reload()};
+{{else}}// escalate puts in place of this page the one /__waf/verify answers when the solve's risk needs the verification
+// box (a new challenge with X): the same interstitial, with the box.
+function escalate(p){done=true;clearTimeout(slow);document.open();document.write(p);document.close()}
+{{end}}function submit(sol{{if .Interactive}},ia{{end}}){
+{{if .PAT}}Promise.race([pp,new Promise(function(r){setTimeout(r,2000)})]).then(function(){
+{{end}}fetch("/__waf/verify",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",cache:"no-store",body:JSON.stringify({challenge:C,solutions:sol{{if .Interactive}},interaction:ia{{end}}{{block "ext-fields" .}}{{end}}{{if .PAT}},pt:pt{{end}}})})
+.then(function(r){return r.json()}).then(function(j){if(j&&j.ok){done=true;clearTimeout(slow);{{if .Interactive}}if(asked){st("passed");bx("success",T.success)}else {{end}}say(T.done);location.reload()}else{ {{- if not .Interactive}}if(j&&j.interactive&&j.page)escalate(j.page);else {{end}}fail({{if .Interactive}}j&&j.error{{end}})}},fail){{if .PAT}}}){{end}}}
+{{if .Interactive}}function ask(sol){
+done=true;clearTimeout(slow);asked=true;
+var seen={pointer:"",key:false},t0=Date.now(),sent=false;
+function on(e){var k=activation(e,seen);if(e.type==="pointerdown"||(e.type==="keydown"&&e.key!=="Enter"))return;
+if(!k||sent){if(e.type==="click")e.preventDefault();return}
+if(e.type==="keydown")e.preventDefault();{{block "ext-activation" .}}{{end}}sent=true;cb.disabled=true;st("verifying");bx("solving",T.verifying);submit(sol,{kind:k,ms:Math.max(0,Date.now()-t0)})}
+cb.parentNode.addEventListener("pointerdown",on);cb.addEventListener("keydown",on);cb.addEventListener("click",on);
+hd.textContent=T.host;st("ask");say(T.prompt);cb.focus()}
+{{end}}say(T.start);
+if(!window.owafPow){fail();return}
+{{block "ext-init" .}}{{end}}function solved(sol,nav){ {{- block "ext-nav" .}}{{end}}{{if .Interactive}}ask{{else}}submit{{end}}(sol)}
+try{window.owafPow.solveInWorker(W,N,Q,D,function(){},solved)}catch(e){fail()}
+})();
+</script>
+</body></html>

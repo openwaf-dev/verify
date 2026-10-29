@@ -1,0 +1,71 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Nothing private may land here: secrets (gitleaks over the whole history) and the leak guard. The guard's private
+  # denylist comes from the LEAK_DENYLIST secret, which pull requests from forks don't get (built-in rules only); a
+  # push to main without it fails.
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Secret scan (gitleaks, full history)
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -sSfLo /tmp/gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tgz" | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+          /tmp/gitleaks git --redact=100 --no-banner .
+      - name: Leak guard
+        env:
+          LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ -z "$LEAK_DENYLIST" ]; then
+            if [ "$EVENT" = push ]; then echo "LEAK_DENYLIST secret missing" >&2; exit 1; fi
+            scripts/leak-guard.sh .
+          else
+            f=$(mktemp) && chmod 600 "$f"
+            printf '%s\n' "$LEAK_DENYLIST" >"$f"
+            LEAK_DENYLIST_FILE="$f" scripts/leak-guard.sh .
+            rm -f "$f"
+          fi
+
+  # The committed bundles are exactly what build.mjs produces from these sources, and the client's tests pass.
+  client:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Rebuild the bundles (reproducible)
+        run: |
+          node challengejs/build.mjs
+          git diff --exit-code -- challengejs/
+      - name: Client tests
+        run: go test -count=1 ./challengejs/

@@ -1,0 +1,61 @@
+{
+  "name": "@openwaf/verify-react",
+  "version": "0.1.0",
+  "description": "React component for OpenWAF Verify, the first-party proof-of-work challenge widget.",
+  "license": "Apache-2.0",
+  "author": "OpenWAF <support@openwaf.dev>",
+  "homepage": "https://github.com/openwaf-dev/verify/tree/main/react#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openwaf-dev/verify.git",
+    "directory": "react"
+  },
+  "bugs": {
+    "url": "https://github.com/openwaf-dev/verify/issues"
+  },
+  "keywords": [
+    "openwaf",
+    "react",
+    "captcha",
+    "turnstile",
+    "proof-of-work",
+    "bot-protection"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:live": "npm run build && vitest run -c vitest.live.config.ts",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "esbuild": "0.28.2",
+    "jsdom": "29.1.1",
+    "playwright": "1.64.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5"
+  }
+}

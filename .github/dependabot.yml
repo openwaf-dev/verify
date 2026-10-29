@@ -1,0 +1,27 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directories: ["/node", "/react", "/vue"]
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      npm-dev:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: composer
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday

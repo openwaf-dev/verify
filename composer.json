@@ -1,0 +1,46 @@
+{
+    "name": "openwaf/verify",
+    "description": "Server-side siteverify client for OpenWAF Verify, the first-party proof-of-work challenge widget.",
+    "type": "library",
+    "license": "Apache-2.0",
+    "keywords": ["openwaf", "captcha", "turnstile", "proof-of-work", "siteverify", "bot-protection"],
+    "homepage": "https://github.com/openwaf-dev/verify",
+    "support": {
+        "issues": "https://github.com/openwaf-dev/verify/issues",
+        "source": "https://github.com/openwaf-dev/verify",
+        "email": "support@openwaf.dev"
+    },
+    "authors": [
+        {
+            "name": "OpenWAF",
+            "email": "support@openwaf.dev",
+            "homepage": "https://openwaf.dev"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5 || ^11.0"
+    },
+    "suggest": {
+        "ext-curl": "Preferred HTTP transport; without it the client falls back to PHP streams (needs allow_url_fopen and ext-openssl)."
+    },
+    "autoload": {
+        "psr-4": {
+            "OpenWAF\\Verify\\": "php/src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "OpenWAF\\Verify\\Tests\\": "php/tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit -c php/phpunit.xml.dist"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

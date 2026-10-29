@@ -1,0 +1,65 @@
+name: ui
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "react/**"
+      - "vue/**"
+      - "examples/react-vite/**"
+      - ".github/workflows/ui.yml"
+  pull_request:
+    paths:
+      - "react/**"
+      - "vue/**"
+      - "examples/react-vite/**"
+      - ".github/workflows/ui.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  component:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [react, vue]
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ${{ matrix.package }}/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      # Builds dist/ and runs it with the real widget from the OpenWAF edge (test keys only).
+      - run: npm run test:live
+        env:
+          OPENWAF_VERIFY_LIVE: "1"
+
+  example:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            react/package-lock.json
+            examples/react-vite/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: react
+      - run: npm ci && npm run build
+        working-directory: examples/react-vite

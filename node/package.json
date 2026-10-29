@@ -1,0 +1,53 @@
+{
+  "name": "@openwaf/verify",
+  "version": "0.1.0",
+  "description": "Server-side siteverify client for OpenWAF Verify (first-party proof-of-work challenge).",
+  "license": "Apache-2.0",
+  "author": "OpenWAF <support@openwaf.dev>",
+  "homepage": "https://github.com/openwaf-dev/verify/tree/main/node#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openwaf-dev/verify.git",
+    "directory": "node"
+  },
+  "bugs": {
+    "url": "https://github.com/openwaf-dev/verify/issues"
+  },
+  "keywords": [
+    "openwaf",
+    "captcha",
+    "turnstile",
+    "siteverify",
+    "proof-of-work",
+    "bot-protection"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.js",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "18.19.130",
+    "typescript": "5.9.3"
+  }
+}
